@@ -79,9 +79,12 @@ class ADWIN(BaseDriftDetector):
         self.mint_clock = 32
 
         self.bln_bucket_deleted = False
+        self.warning_level = False
         self.bucket_num_max = 0
         self.mint_min_window_length = 5
         super().reset()
+
+
 
     def reset(self):
         """ Reset detectors
@@ -114,7 +117,10 @@ class ADWIN(BaseDriftDetector):
         self.mint_clock = clock
 
     def detected_warning_zone(self):
-        return False
+        return self.warning_level
+
+    def reset_warning(self):
+        self.warning_level = False
 
     @property
     def _bucket_used_bucket(self):
@@ -290,6 +296,7 @@ class ADWIN(BaseDriftDetector):
         bln_change = False
         bln_exit = False
         bln_bucket_deleted = False
+        self.warning_level = False
         self.mint_time += 1
         n0 = 0
         if (self.mint_time % self.mint_clock == 0) and (self.width > self.mint_min_window_longitude):
@@ -329,6 +336,11 @@ class ADWIN(BaseDriftDetector):
                             break
 
                         abs_value = 1. * ((u0/n0) - (u1/n1))
+                        #warning
+                        if (n1 >= self.mint_min_window_length) and (n0 >= self.mint_min_window_length) \
+                                and (self.__bln_cut_expression(n0, n1, u0, u1, v0, v1, abs_value, self.delta*10)):
+                            self.warning_level = True
+                        #change
                         if (n1 >= self.mint_min_window_length) and (n0 >= self.mint_min_window_length)\
                                 and (self.__bln_cut_expression(n0, n1, u0, u1, v0, v1, abs_value, self.delta)):
                             bln_bucket_deleted = True
